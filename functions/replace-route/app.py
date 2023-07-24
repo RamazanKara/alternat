@@ -92,6 +92,9 @@ def get_nat_gateway_id(vpc_id, subnet_id):
     logger.debug("NAT Gateway ID: %s", nat_gateway_id)
     return nat_gateway_id
 
+def publish_sns_message(topic_arn, subject, message):
+    sns_client = boto3.client("sns")
+    sns_client.publish(TopicArn=topic_arn, Subject=subject, Message=message)
 
 def replace_route(route_table_id, nat_gateway_id):
     new_route_table = {
@@ -102,6 +105,9 @@ def replace_route(route_table_id, nat_gateway_id):
     try:
         logger.info("Replacing existing route %s for route table %s", route_table_id, new_route_table)
         ec2_client.replace_route(**new_route_table)
+        
+        publish_sns_message(var.sns_topic_arn, "Route Replaced", "A route has been replaced")
+
     except botocore.exceptions.ClientError as error:
         logger.error("Unable to replace route")
         raise error
